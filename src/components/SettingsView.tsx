@@ -1,48 +1,13 @@
 import React from 'react';
 import { Bill } from '../types';
-import { Download, Upload, Info, Cloud, RefreshCw, LogOut } from 'lucide-react';
+import { Cloud, LogOut } from 'lucide-react';
 
 interface Props {
   bills: Bill[];
-  onImport: (bills: Bill[]) => void;
   driveSync: any;
 }
 
-export function SettingsView({ bills, onImport, driveSync }: Props) {
-  const handleExport = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bills, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `bills_backup_${new Date().toISOString().slice(0,10)}.json`);
-    document.body.appendChild(downloadAnchorNode); // required for firefox
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  };
-
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const importedBills = JSON.parse(event.target?.result as string);
-        if (Array.isArray(importedBills)) {
-          if (window.confirm('This will append imported bills to your existing list. Do you want to continue?')) {
-            onImport(importedBills);
-            alert('Import successful!');
-          }
-        } else {
-          alert('Invalid file format. Please upload a valid JSON backup.');
-        }
-      } catch (err) {
-        alert('Error parsing file.');
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = ''; // Reset input
-  };
-
+export function SettingsView({ bills, driveSync }: Props) {
   return (
     <div className="pb-24 md:pb-8 w-full space-y-6">
       {/* Cloud Sync Section */}
@@ -77,23 +42,13 @@ export function SettingsView({ bills, onImport, driveSync }: Props) {
         </div>
         <div className="flex flex-col gap-3 md:items-end w-full md:w-auto">
            {driveSync.accessToken ? (
-             <>
-               <button 
-                 onClick={driveSync.manualSync} 
-                 disabled={driveSync.isSyncing}
-                 className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
-               >
-                 {driveSync.isSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                 Sync Now
-               </button>
-               <button 
-                 onClick={driveSync.logout} 
-                 className="flex items-center justify-center gap-2 px-6 py-2 bg-indigo-100 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-200 transition-colors"
-               >
-                 <LogOut className="w-4 h-4" />
-                 Disconnect Drive
-               </button>
-             </>
+             <button 
+               onClick={driveSync.logout} 
+               className="flex items-center justify-center gap-2 px-6 py-2 bg-indigo-100 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-200 transition-colors"
+             >
+               <LogOut className="w-4 h-4" />
+               Log Out
+             </button>
            ) : (
              <div className="flex flex-col items-center md:items-end w-full">
                <button 
@@ -109,43 +64,6 @@ export function SettingsView({ bills, onImport, driveSync }: Props) {
                </p>
              </div>
            )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-        {/* Export Data */}
-        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200">
-          <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 mb-6">
-            <Download className="w-6 h-6" />
-          </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">Export Data</h3>
-          <p className="text-sm text-slate-500 font-medium mb-6">Download a copy of your bills to your device.</p>
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-200 transition-colors w-full justify-center"
-          >
-            Download JSON Backup
-          </button>
-        </div>
-
-        {/* Import Data */}
-        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200">
-          <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 mb-6">
-            <Upload className="w-6 h-6" />
-          </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">Import Data</h3>
-          <p className="text-sm text-slate-500 font-medium mb-6">Restore your bills from a previously downloaded file.</p>
-          <div className="relative">
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImport}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 outline-none text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors w-full justify-center pointer-events-none">
-              Select Backup File
-            </button>
-          </div>
         </div>
       </div>
     </div>

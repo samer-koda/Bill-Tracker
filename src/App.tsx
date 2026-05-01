@@ -50,11 +50,6 @@ export default function App() {
     setIsModalOpen(true);
   };
 
-  const handleImport = (importedBills: Bill[]) => {
-    // Generate new IDs or merge logically. For simplicity, just appending.
-    setBills(prev => [...prev, ...importedBills.map(b => ({ ...b, id: generateId() }))]);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans overflow-hidden">
       {/* Header */}
@@ -136,7 +131,7 @@ export default function App() {
               />
             )}
             {activeTab === 'settings' && (
-              <SettingsView bills={bills} onImport={handleImport} driveSync={driveSync} />
+              <SettingsView bills={bills} driveSync={driveSync} />
             )}
           </>
         )}
