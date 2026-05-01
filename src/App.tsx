@@ -15,17 +15,12 @@ import { Bill } from './types';
 import { cn, generateId } from './lib/utils';
 
 export default function App() {
-  const { bills, setBills, addBill, updateBill, deleteBill, togglePaid, setUseLocalStorage } = useBills();
+  const { bills, setBills, addBill, updateBill, deleteBill, togglePaid } = useBills();
   const driveSync = useDriveSync(bills, setBills);
   
   const [activeTab, setActiveTab] = useState<'list' | 'calendar' | 'settings'>('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<Bill | undefined>();
-
-  // Toggle local storage based on Drive connection
-  useEffect(() => {
-    // keeping local storage on always as a reliable cache
-  }, [driveSync.accessToken, setUseLocalStorage]);
 
   // Auto-sync whenever bills change, if connected
   useEffect(() => {
@@ -68,7 +63,7 @@ export default function App() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">BillTracker</h1>
           <p className="text-slate-500 font-medium">{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
         </div>
-        {activeTab !== 'settings' && (
+        {driveSync.accessToken && activeTab !== 'settings' && (
           <button 
             onClick={handleOpenModal}
             className="flex flex-shrink-0 items-center justify-center gap-1.5 md:hidden bg-indigo-600 hover:bg-indigo-700 text-white w-10 h-10 rounded-full text-sm font-bold transition-colors shadow-sm"
@@ -85,10 +80,10 @@ export default function App() {
               <p className="text-sm font-semibold text-indigo-600 flex items-center gap-1">
                  {driveSync.isSyncing && <RefreshCw className="w-3 h-3 animate-spin" />}
                  {driveSync.autoSyncing && !driveSync.isSyncing && <CloudUpload className="w-3 h-3 animate-pulse" />}
-                 {driveSync.pendingSyncChoice ? "Drive Setup Pending" : "Google Drive Active"}
+                 Google Drive Active
               </p>
             ) : (
-              <p className="text-sm font-semibold text-emerald-600">Local Storage Active</p>
+              <p className="text-sm font-semibold text-slate-500">Not Logged In</p>
             )}
           </div>
           {driveSync.accessToken ? (
@@ -105,29 +100,50 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 pb-32 md:pb-8 overflow-y-auto">
-        {activeTab === 'list' && (
-          <ListView 
-            bills={bills} 
-            onTogglePaid={togglePaid} 
-            onEdit={handleEdit} 
-            onDelete={deleteBill} 
-          />
-        )}
-        {activeTab === 'calendar' && (
-          <CalendarView 
-            bills={bills} 
-            onTogglePaid={togglePaid} 
-            onEdit={handleEdit} 
-            onDelete={deleteBill} 
-          />
-        )}
-        {activeTab === 'settings' && (
-          <SettingsView bills={bills} onImport={handleImport} driveSync={driveSync} />
+        {!driveSync.accessToken ? (
+           <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto text-center mt-20">
+             <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center mb-6 shadow-sm">
+               <CloudUpload className="w-10 h-10" />
+             </div>
+             <h2 className="text-2xl font-bold text-slate-900 mb-3">Welcome to BillTracker</h2>
+             <p className="text-slate-500 mb-8 font-medium">Please connect your Google Drive to securely save and access your bills across all your devices.</p>
+             <button 
+               onClick={driveSync.login}
+               disabled={driveSync.isSyncing} 
+               className="flex items-center justify-center gap-2 px-8 py-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-lg font-bold shadow-md transition-transform active:scale-95"
+             >
+               <CloudUpload className="w-6 h-6" />
+               Sign in with Google
+             </button>
+             {driveSync.syncError && <p className="text-rose-600 font-bold bg-rose-50 p-3 rounded-lg mt-6 w-full">{driveSync.syncError}</p>}
+           </div>
+        ) : (
+          <>
+            {activeTab === 'list' && (
+              <ListView 
+                bills={bills} 
+                onTogglePaid={togglePaid} 
+                onEdit={handleEdit} 
+                onDelete={deleteBill} 
+              />
+            )}
+            {activeTab === 'calendar' && (
+              <CalendarView 
+                bills={bills} 
+                onTogglePaid={togglePaid} 
+                onEdit={handleEdit} 
+                onDelete={deleteBill} 
+              />
+            )}
+            {activeTab === 'settings' && (
+              <SettingsView bills={bills} onImport={handleImport} driveSync={driveSync} />
+            )}
+          </>
         )}
       </main>
 
       {/* Floating Action Button (Desktop) */}
-      {activeTab !== 'settings' && (
+      {driveSync.accessToken && activeTab !== 'settings' && (
         <button
           onClick={handleOpenModal}
           className="hidden md:flex fixed bottom-8 right-8 z-40 bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-3xl shadow-lg items-center justify-center transition-transform hover:scale-105 active:scale-95 transform-gpu"
@@ -139,47 +155,51 @@ export default function App() {
       )}
 
       {/* Desktop Navigation */}
-      <nav className="hidden md:flex absolute top-10 right-[300px] gap-2 lg:right-[400px]">
-         <button onClick={() => setActiveTab('list')} className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-colors", activeTab === 'list' ? "bg-indigo-100 text-indigo-700" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50")}>List</button>
-         <button onClick={() => setActiveTab('calendar')} className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-colors", activeTab === 'calendar' ? "bg-indigo-100 text-indigo-700" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50")}>Calendar</button>
-         <button onClick={() => setActiveTab('settings')} className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-colors", activeTab === 'settings' ? "bg-indigo-100 text-indigo-700" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50")}>Settings</button>
-      </nav>
+      {driveSync.accessToken && (
+        <nav className="hidden md:flex absolute top-10 right-[300px] gap-2 lg:right-[400px]">
+           <button onClick={() => setActiveTab('list')} className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-colors", activeTab === 'list' ? "bg-indigo-100 text-indigo-700" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50")}>List</button>
+           <button onClick={() => setActiveTab('calendar')} className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-colors", activeTab === 'calendar' ? "bg-indigo-100 text-indigo-700" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50")}>Calendar</button>
+           <button onClick={() => setActiveTab('settings')} className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-colors", activeTab === 'settings' ? "bg-indigo-100 text-indigo-700" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50")}>Settings</button>
+        </nav>
+      )}
 
       {/* Bottom Navigation */}
-      <nav className="bg-white border-t border-slate-200 fixed bottom-0 left-0 w-full z-30 pb-safe md:hidden">
-        <div className="max-w-md mx-auto flex justify-around">
-          <button 
-            onClick={() => setActiveTab('list')}
-            className={cn(
-              "flex flex-col items-center justify-center w-full py-3 transition-colors text-xs font-medium border-t-2",
-              activeTab === 'list' ? "text-indigo-600 border-indigo-600" : "text-slate-500 hover:text-slate-900 border-transparent"
-            )}
-          >
-            <List className={cn("w-6 h-6 mb-1", activeTab === 'list' ? "text-indigo-600" : "")} />
-            List
-          </button>
-          <button 
-            onClick={() => setActiveTab('calendar')}
-            className={cn(
-              "flex flex-col items-center justify-center w-full py-3 transition-colors text-xs font-medium border-t-2",
-              activeTab === 'calendar' ? "text-indigo-600 border-indigo-600" : "text-slate-500 hover:text-slate-900 border-transparent"
-            )}
-          >
-            <CalendarIcon className={cn("w-6 h-6 mb-1", activeTab === 'calendar' ? "text-indigo-600" : "")} />
-            Calendar
-          </button>
-          <button 
-            onClick={() => setActiveTab('settings')}
-            className={cn(
-              "flex flex-col items-center justify-center w-full py-3 transition-colors text-xs font-medium border-t-2",
-              activeTab === 'settings' ? "text-indigo-600 border-indigo-600" : "text-slate-500 hover:text-slate-900 border-transparent"
-            )}
-          >
-            <Settings className={cn("w-6 h-6 mb-1", activeTab === 'settings' ? "text-indigo-600" : "")} />
-            Settings
-          </button>
-        </div>
-      </nav>
+      {driveSync.accessToken && (
+        <nav className="bg-white border-t border-slate-200 fixed bottom-0 left-0 w-full z-30 pb-safe md:hidden">
+          <div className="max-w-md mx-auto flex justify-around">
+            <button 
+              onClick={() => setActiveTab('list')}
+              className={cn(
+                "flex flex-col items-center justify-center w-full py-3 transition-colors text-xs font-medium border-t-2",
+                activeTab === 'list' ? "text-indigo-600 border-indigo-600" : "text-slate-500 hover:text-slate-900 border-transparent"
+              )}
+            >
+              <List className={cn("w-6 h-6 mb-1", activeTab === 'list' ? "text-indigo-600" : "")} />
+              List
+            </button>
+            <button 
+              onClick={() => setActiveTab('calendar')}
+              className={cn(
+                "flex flex-col items-center justify-center w-full py-3 transition-colors text-xs font-medium border-t-2",
+                activeTab === 'calendar' ? "text-indigo-600 border-indigo-600" : "text-slate-500 hover:text-slate-900 border-transparent"
+              )}
+            >
+              <CalendarIcon className={cn("w-6 h-6 mb-1", activeTab === 'calendar' ? "text-indigo-600" : "")} />
+              Calendar
+            </button>
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={cn(
+                "flex flex-col items-center justify-center w-full py-3 transition-colors text-xs font-medium border-t-2",
+                activeTab === 'settings' ? "text-indigo-600 border-indigo-600" : "text-slate-500 hover:text-slate-900 border-transparent"
+              )}
+            >
+              <Settings className={cn("w-6 h-6 mb-1", activeTab === 'settings' ? "text-indigo-600" : "")} />
+              Settings
+            </button>
+          </div>
+        </nav>
+      )}
 
       {/* Modals */}
       <AddBillModal 

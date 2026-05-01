@@ -3,25 +3,7 @@ import { Bill } from '../types';
 import { generateId } from '../lib/utils';
 
 export function useBills() {
-  const [bills, setBills] = useState<Bill[]>(() => {
-    const saved = localStorage.getItem('bills_data');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return [];
-      }
-    }
-    return [];
-  });
-  
-  const [useLocalStorage, setUseLocalStorage] = useState(true);
-
-  useEffect(() => {
-    if (useLocalStorage) {
-      localStorage.setItem('bills_data', JSON.stringify(bills));
-    }
-  }, [bills, useLocalStorage]);
+  const [bills, setBills] = useState<Bill[]>([]);
 
   // Process autopay bills
   useEffect(() => {
@@ -110,5 +92,5 @@ export function useBills() {
     });
   };
 
-  return { bills, setBills, addBill, updateBill, deleteBill, togglePaid, setUseLocalStorage };
+  return { bills, setBills, addBill, updateBill, deleteBill, togglePaid };
 }

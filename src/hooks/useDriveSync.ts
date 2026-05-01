@@ -1,4 +1,4 @@
-  import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { findDriveFile, readFromDrive, saveToDrive, getOrCreateFolder } from '../lib/driveSync';
 import { Bill } from '../types';
@@ -14,12 +14,10 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
 
   const [autoSyncing, setAutoSyncing] = useState<boolean>(false);
   const [lastSavedBillsJSON, setLastSavedBillsJSON] = useState<string>('');
-
-  const [pendingSyncChoice, setPendingSyncChoice] = useState<{hasRemote: boolean, remoteCount: number, remoteData: Bill[]} | null>(null);
   const [userProfile, setUserProfile] = useState<{ name: string, email: string, picture: string } | null>(null);
   const skipNextSyncRef = useRef<boolean>(false);
 
-  const checkInitialSync = useCallback(async (token: string, isSessionRestore = false) => {
+  const checkInitialSync = useCallback(async (token: string) => {
     setIsSyncing(true);
     setSyncError(null);
     setSyncMessage(null);
@@ -31,31 +29,14 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
         const remoteBills = await readFromDrive(token, fileInfo.id);
         const remoteArray = Array.isArray(remoteBills) ? remoteBills : [];
         
-        if (isSessionRestore) {
-           const localSaved = localStorage.getItem('bills_data');
-           const localBills = localSaved ? JSON.parse(localSaved) : [];
-           const map = new Map<string, Bill>();
-           localBills.forEach((b: Bill) => map.set(b.id, b));
-           remoteArray.forEach((b: Bill) => map.set(b.id, b));
-           const mergedBills = Array.from(map.values());
-           
-           setBills(mergedBills);
-           setLastSavedBillsJSON(JSON.stringify(mergedBills));
-           setPendingSyncChoice(null);
-           skipNextSyncRef.current = true;
-           
-           if (JSON.stringify(remoteArray) !== JSON.stringify(mergedBills)) {
-              saveToDrive(token, mergedBills, fileInfo.id);
-           }
-        } else {
-           setPendingSyncChoice({ hasRemote: true, remoteCount: remoteArray.length, remoteData: remoteArray });
-        }
+        skipNextSyncRef.current = true;
+        setBills(remoteArray);
+        setLastSavedBillsJSON(JSON.stringify(remoteArray));
+        setLastSyncTime(new Date());
       } else {
-        if (isSessionRestore) {
-           setPendingSyncChoice(null);
-        } else {
-           setPendingSyncChoice({ hasRemote: false, remoteCount: 0, remoteData: [] });
-        }
+         skipNextSyncRef.current = true;
+         setBills([]);
+         setLastSavedBillsJSON('[]');
       }
     } catch (e: any) {
       console.error(e);
@@ -110,7 +91,7 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
         if (Date.now() - timestamp < 3300000) {
           setAccessToken(token);
           setUserProfile(profile);
-          checkInitialSync(token, true);
+          checkInitialSync(token);
         } else {
           localStorage.removeItem('drive_sync_session');
         }
@@ -129,53 +110,8 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
     rawLogin();
   };
 
-  const resolveSync = async (choice: 'merge' | 'push' | 'pull' | 'clear') => {
-    if (!accessToken || !pendingSyncChoice) return;
-    setIsSyncing(true);
-    setSyncError(null);
-    setSyncMessage(null);
-    try {
-      let finalBills = [...bills];
-      if (choice === 'pull') {
-        finalBills = pendingSyncChoice.remoteData;
-      } else if (choice === 'merge') {
-        const map = new Map<string, Bill>();
-        bills.forEach(b => map.set(b.id, b));
-        pendingSyncChoice.remoteData.forEach(b => map.set(b.id, b));
-        finalBills = Array.from(map.values());
-      } else if (choice === 'clear') {
-        finalBills = [];
-      }
-
-      skipNextSyncRef.current = true;
-      setBills(finalBills);
-      setLastSavedBillsJSON(JSON.stringify(finalBills));
-
-      let targetFileId = driveFileId;
-      let folderId;
-      if (choice === 'push' || choice === 'merge' || !targetFileId) {
-         if (!targetFileId) {
-           folderId = await getOrCreateFolder(accessToken);
-         }
-         const saveRes = await saveToDrive(accessToken, finalBills, targetFileId, folderId);
-         setDriveFileId(saveRes.id);
-         if (saveRes.webViewLink) setDriveFileLink(saveRes.webViewLink);
-      }
-
-      setLastSyncTime(new Date());
-      setPendingSyncChoice(null);
-      setSyncMessage(`Initial setup complete using '${choice}'.`);
-    } catch(e: any) {
-      console.error(e);
-      setSyncError(e.message || 'Failed to sync');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const manualSync = async () => {
     if (!accessToken) return;
-    if (pendingSyncChoice) return;
     setIsSyncing(true);
     setSyncError(null);
     setSyncMessage(null);
@@ -201,7 +137,7 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
   };
 
   const autoSync = useCallback(async (currentBills: Bill[]) => {
-    if (!accessToken || !driveFileId || pendingSyncChoice) return;
+    if (!accessToken) return;
 
     const currentJSON = JSON.stringify(currentBills);
     if (currentJSON === lastSavedBillsJSON) return;
@@ -212,7 +148,16 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
 
     setAutoSyncing(true);
     try {
-      await saveToDrive(accessToken, currentBills, driveFileId);
+      let targetFileId = driveFileId;
+      if (!targetFileId) {
+        const folderId = await getOrCreateFolder(accessToken);
+        const saveRes = await saveToDrive(accessToken, currentBills, null, folderId);
+        setDriveFileId(saveRes.id);
+        targetFileId = saveRes.id;
+        if (saveRes.webViewLink) setDriveFileLink(saveRes.webViewLink);
+      } else {
+        await saveToDrive(accessToken, currentBills, targetFileId);
+      }
       setLastSyncTime(new Date());
       setLastSavedBillsJSON(currentJSON);
     } catch (e: any) {
@@ -220,7 +165,7 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
     } finally {
       setAutoSyncing(false);
     }
-  }, [accessToken, driveFileId, lastSavedBillsJSON, pendingSyncChoice]);
+  }, [accessToken, driveFileId, lastSavedBillsJSON]);
 
   const logout = () => {
     setAccessToken(null);
@@ -228,8 +173,8 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
     setDriveFileLink(null);
     setLastSyncTime(null);
     setLastSavedBillsJSON('');
-    setPendingSyncChoice(null);
     setUserProfile(null);
+    setBills([]); // Also clear bills on logout
     localStorage.removeItem('drive_sync_session');
   };
 
@@ -246,8 +191,6 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
     syncMessage,
     driveFileLink,
     driveFileId,
-    pendingSyncChoice,
-    resolveSync,
     userProfile
   };
 }
