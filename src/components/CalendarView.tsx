@@ -71,8 +71,9 @@ export function CalendarView({ bills, onTogglePaid, onEdit, onDelete }: Props) {
     const daysHeader = [];
     for (let i = 0; i < 7; i++) {
         daysHeader.push(
-          <div className="bg-slate-50 p-2 text-center text-xs font-bold text-slate-500 uppercase" key={`header-${i}`}>
-            {format(addDays(startDate, i), 'EEE')}
+          <div className="bg-slate-50 p-2 text-center text-[10px] sm:text-xs font-bold text-slate-500 uppercase" key={`header-${i}`}>
+            <span className="hidden sm:inline">{format(addDays(startDate, i), 'EEE')}</span>
+            <span className="sm:hidden">{format(addDays(startDate, i), 'EEEEE')}</span>
           </div>
         );
     }
@@ -93,22 +94,22 @@ export function CalendarView({ bills, onTogglePaid, onEdit, onDelete }: Props) {
         const hasPaid = dayBills.some(b => b.isPaid);
 
         days.push(
-          <div
-            className={cn(
-              "relative h-20 md:h-24 p-2 cursor-pointer transition-colors flex flex-col",
-              !isSameMonth(day, monthStart) ? "bg-white text-slate-300" : "bg-white text-slate-900 hover:bg-indigo-50",
-              isSameDay(day, selectedDate) ? "ring-2 ring-inset ring-indigo-500 bg-indigo-50 z-10" : "",
-              isSameDay(day, new Date()) ? "font-bold" : "" // Today highlight
-            )}
-            key={day.toISOString()}
-            onClick={() => onDateClick(cloneDay)}
-          >
-            <span className={cn(
-              "flex items-center justify-center w-6 h-6 rounded-full text-sm",
-              isSameDay(day, new Date()) ? "bg-indigo-600 text-white" : ""
-            )}>
-              {formattedDate}
-            </span>
+            <div
+              className={cn(
+                "relative h-16 sm:h-20 md:h-24 p-1 sm:p-2 cursor-pointer transition-colors flex flex-col items-center sm:items-start",
+                !isSameMonth(day, monthStart) ? "bg-white text-slate-300" : "bg-white text-slate-900 hover:bg-indigo-50",
+                isSameDay(day, selectedDate) ? "ring-2 ring-inset ring-indigo-500 bg-indigo-50 z-10" : "",
+                isSameDay(day, new Date()) ? "font-bold" : "" // Today highlight
+              )}
+              key={day.toISOString()}
+              onClick={() => onDateClick(cloneDay)}
+            >
+              <span className={cn(
+                "flex items-center justify-center w-7 h-7 sm:w-6 sm:h-6 rounded-full text-[13px] sm:text-sm",
+                isSameDay(day, new Date()) ? "bg-indigo-600 text-white" : ""
+              )}>
+                {formattedDate}
+              </span>
             
             {/* Desktop labels */}
             <div className="mt-1 space-y-1 flex-1 overflow-hidden hidden md:block">
