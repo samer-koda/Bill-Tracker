@@ -12,7 +12,7 @@ import { SettingsView } from './components/SettingsView';
 import { AddBillModal } from './components/AddBillModal';
 import { List, Calendar as CalendarIcon, Settings, Plus, RefreshCw, CloudUpload } from 'lucide-react';
 import { Bill } from './types';
-import { cn } from './lib/utils';
+import { cn, generateId } from './lib/utils';
 
 export default function App() {
   const { bills, setBills, addBill, updateBill, deleteBill, togglePaid, setUseLocalStorage } = useBills();
@@ -57,7 +57,7 @@ export default function App() {
 
   const handleImport = (importedBills: Bill[]) => {
     // Generate new IDs or merge logically. For simplicity, just appending.
-    setBills(prev => [...prev, ...importedBills.map(b => ({ ...b, id: crypto.randomUUID() }))]);
+    setBills(prev => [...prev, ...importedBills.map(b => ({ ...b, id: generateId() }))]);
   };
 
   return (

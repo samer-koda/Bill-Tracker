@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Bill } from '../types';
+import { generateId } from '../lib/utils';
 
 export function useBills() {
   const [bills, setBills] = useState<Bill[]>(() => {
@@ -44,7 +45,7 @@ export function useBills() {
               
               const newBill: Bill = {
                 ...bill,
-                id: crypto.randomUUID(),
+                id: generateId(),
                 dueDate: currentDueDate.toISOString().slice(0, 10),
                 isPaid: false
               };
@@ -63,7 +64,7 @@ export function useBills() {
   const addBill = (billData: Omit<Bill, 'id'>) => {
     const newBill = {
       ...billData,
-      id: crypto.randomUUID()
+      id: generateId()
     };
     setBills(prev => [...prev, newBill]);
   };
@@ -91,7 +92,7 @@ export function useBills() {
         
         const newBill: Bill = {
           ...bill,
-          id: crypto.randomUUID(),
+          id: generateId(),
           dueDate: currentDueDate.toISOString().slice(0, 10),
           isPaid: false
         };
