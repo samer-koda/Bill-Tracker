@@ -24,7 +24,7 @@ export default function App() {
 
   // Toggle local storage based on Drive connection
   useEffect(() => {
-    setUseLocalStorage(!driveSync.accessToken);
+    // keeping local storage on always as a reliable cache
   }, [driveSync.accessToken, setUseLocalStorage]);
 
   // Auto-sync whenever bills change, if connected
