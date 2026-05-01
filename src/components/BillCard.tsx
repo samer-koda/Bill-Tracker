@@ -39,15 +39,21 @@ export function BillCard({ bill, onTogglePaid, onEdit, onDelete }: Props) {
         )}>
           {bill.payee}
         </h4>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+        <div className="flex items-center gap-1.5 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis w-full pr-2">
+          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span className={cn(
-            "text-xs font-medium space-x-1",
+            "text-xs font-medium space-x-1 shrink-0",
             isOverdue ? "text-rose-600 font-bold" : "text-slate-500"
           )}>
             <span>{format(parseISO(bill.dueDate), 'MMM dd')}</span>
             <span className="text-slate-300">•</span>
             <span>{bill.isRecurring ? 'Recurring' : 'One-time'}</span>
+            {bill.isAutopay && (
+              <>
+                <span className="text-slate-300">•</span>
+                <span className="text-emerald-500 font-bold">Autopay</span>
+              </>
+            )}
             {isOverdue && <span className="ml-1 text-rose-600 font-bold">• Overdue</span>}
           </span>
         </div>

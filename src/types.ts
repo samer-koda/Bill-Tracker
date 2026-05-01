@@ -6,4 +6,5 @@ export interface Bill {
   isPaid: boolean;
   notes?: string;
   isRecurring?: boolean; // simple flag for recurring bills
+  isAutopay?: boolean;
 }

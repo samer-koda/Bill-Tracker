@@ -22,6 +22,44 @@ export function useBills() {
     }
   }, [bills, useLocalStorage]);
 
+  // Process autopay bills
+  useEffect(() => {
+    let hasChanges = false;
+    
+    setBills(prev => {
+      let nextBills = [...prev];
+      const todayString = new Date().toISOString().slice(0, 10);
+      
+      for (const bill of prev) {
+        if (bill.isAutopay && !bill.isPaid && bill.dueDate <= todayString) {
+          hasChanges = true;
+          // Apply togglePaid logic essentially
+          const index = nextBills.findIndex(b => b.id === bill.id);
+          if (index !== -1) {
+            if (bill.isRecurring) {
+              const currentDueDate = new Date(bill.dueDate);
+              // Handle next month correctly
+              currentDueDate.setUTCHours(12); // avoid timezone issues
+              currentDueDate.setUTCMonth(currentDueDate.getUTCMonth() + 1);
+              
+              const newBill: Bill = {
+                ...bill,
+                id: crypto.randomUUID(),
+                dueDate: currentDueDate.toISOString().slice(0, 10),
+                isPaid: false
+              };
+              nextBills[index] = { ...bill, isPaid: true };
+              nextBills.push(newBill);
+            } else {
+              nextBills[index] = { ...bill, isPaid: true };
+            }
+          }
+        }
+      }
+      return hasChanges ? nextBills : prev;
+    });
+  }, []);
+
   const addBill = (billData: Omit<Bill, 'id'>) => {
     const newBill = {
       ...billData,

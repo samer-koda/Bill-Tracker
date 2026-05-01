@@ -14,6 +14,7 @@ export function AddBillModal({ isOpen, onClose, onSave, initialData }: Props) {
   const [dueDate, setDueDate] = useState(initialData?.dueDate || new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
+  const [isAutopay, setIsAutopay] = useState(initialData?.isAutopay || false);
 
   if (!isOpen) return null;
 
@@ -27,6 +28,7 @@ export function AddBillModal({ isOpen, onClose, onSave, initialData }: Props) {
       dueDate,
       notes,
       isRecurring,
+      isAutopay,
       isPaid: initialData?.isPaid || false,
     });
     
@@ -37,6 +39,7 @@ export function AddBillModal({ isOpen, onClose, onSave, initialData }: Props) {
       setDueDate(new Date().toISOString().slice(0, 10));
       setNotes('');
       setIsRecurring(false);
+      setIsAutopay(false);
     }
     
     onClose();
@@ -99,17 +102,32 @@ export function AddBillModal({ isOpen, onClose, onSave, initialData }: Props) {
             />
           </div>
 
-          <div className="flex items-center mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer" onClick={() => setIsRecurring(!isRecurring)}>
-            <input
-              id="recurring"
-              type="checkbox"
-              checked={isRecurring}
-              readOnly
-              className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded cursor-pointer"
-            />
-            <label htmlFor="recurring" className="ml-3 block text-sm font-bold text-slate-700 cursor-pointer">
-              Monthly Recurring
-            </label>
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="flex items-center p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer" onClick={() => setIsRecurring(!isRecurring)}>
+              <input
+                id="recurring"
+                type="checkbox"
+                checked={isRecurring}
+                readOnly
+                className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded cursor-pointer"
+              />
+              <label htmlFor="recurring" className="ml-3 block text-sm font-bold text-slate-700 cursor-pointer select-none">
+                Recurring
+              </label>
+            </div>
+            
+            <div className="flex items-center p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer" onClick={() => setIsAutopay(!isAutopay)}>
+              <input
+                id="autopay"
+                type="checkbox"
+                checked={isAutopay}
+                readOnly
+                className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded cursor-pointer"
+              />
+              <label htmlFor="autopay" className="ml-3 block text-sm font-bold text-slate-700 cursor-pointer select-none">
+                Autopay
+              </label>
+            </div>
           </div>
           
           <div className="pt-6 flex space-x-3">
