@@ -1,0 +1,6 @@
+{
+  "name": "Bill Tracker",
+  "description": "A simple personal monthly bill tracker with a list and calendar view.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
