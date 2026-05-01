@@ -33,7 +33,7 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
         
         if (isSessionRestore) {
            const localSaved = localStorage.getItem('bills_data');
-           const localBills = localSaved ? JSON.parse(localSaved) : bills;
+           const localBills = localSaved ? JSON.parse(localSaved) : [];
            const map = new Map<string, Bill>();
            localBills.forEach((b: Bill) => map.set(b.id, b));
            remoteArray.forEach((b: Bill) => map.set(b.id, b));
@@ -63,7 +63,7 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
     } finally {
       setIsSyncing(false);
     }
-  }, [bills, setBills]);
+  }, [setBills]);
 
   const rawLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
