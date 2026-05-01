@@ -1,4 +1,4 @@
-  import { useState, useCallback, useRef } from 'react';
+  import { useState, useCallback, useRef, useEffect } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { findDriveFile, readFromDrive, saveToDrive, getOrCreateFolder } from '../lib/driveSync';
 import { Bill } from '../types';
@@ -45,21 +45,30 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
   const rawLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setAccessToken(tokenResponse.access_token);
+      let pface = null;
       try {
         const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
         });
         if (res.ok) {
           const data = await res.json();
-          setUserProfile({
+          pface = {
             name: data.name,
             email: data.email,
             picture: data.picture
-          });
+          };
+          setUserProfile(pface);
         }
       } catch (e) {
         console.error('Failed to fetch user profile', e);
       }
+      
+      localStorage.setItem('drive_sync_session', JSON.stringify({
+        token: tokenResponse.access_token,
+        profile: pface,
+        timestamp: Date.now()
+      }));
+
       await checkInitialSync(tokenResponse.access_token);
     },
     onError: (errorResponse) => {
@@ -67,6 +76,26 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
     },
     scope: 'https://www.googleapis.com/auth/drive.file profile email',
   });
+
+  // Restore session on mount
+  useEffect(() => {
+    const savedSession = localStorage.getItem('drive_sync_session');
+    if (savedSession) {
+      try {
+        const { token, profile, timestamp } = JSON.parse(savedSession);
+        // Valid for ~55 mins
+        if (Date.now() - timestamp < 3300000) {
+          setAccessToken(token);
+          setUserProfile(profile);
+          checkInitialSync(token);
+        } else {
+          localStorage.removeItem('drive_sync_session');
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [checkInitialSync]);
 
   const login = () => {
     // @ts-ignore
@@ -178,6 +207,7 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
     setLastSavedBillsJSON('');
     setPendingSyncChoice(null);
     setUserProfile(null);
+    localStorage.removeItem('drive_sync_session');
   };
 
   return {
