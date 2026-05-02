@@ -24,10 +24,10 @@ export default function App() {
 
   // Auto-sync whenever bills change, if connected
   useEffect(() => {
-    if (driveSync.accessToken && driveSync.driveFileId) {
+    if (driveSync.accessToken) {
        driveSync.autoSync(bills);
     }
-  }, [bills, driveSync.accessToken, driveSync.driveFileId]);
+  }, [bills, driveSync.accessToken, driveSync.autoSync]);
 
   const handleEdit = (bill: Bill) => {
     setEditingBill(bill);

@@ -15,7 +15,7 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
   const [autoSyncing, setAutoSyncing] = useState<boolean>(false);
   const [lastSavedBillsJSON, setLastSavedBillsJSON] = useState<string>('');
   const [userProfile, setUserProfile] = useState<{ name: string, email: string, picture: string } | null>(null);
-  const skipNextSyncRef = useRef<boolean>(false);
+  const isInitialSyncCompleteRef = useRef<boolean>(false);
 
   const checkInitialSync = useCallback(async (token: string) => {
     setIsSyncing(true);
@@ -29,15 +29,14 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
         const remoteBills = await readFromDrive(token, fileInfo.id);
         const remoteArray = Array.isArray(remoteBills) ? remoteBills : [];
         
-        skipNextSyncRef.current = true;
         setBills(remoteArray);
         setLastSavedBillsJSON(JSON.stringify(remoteArray));
         setLastSyncTime(new Date());
       } else {
-         skipNextSyncRef.current = true;
          setBills([]);
          setLastSavedBillsJSON('[]');
       }
+      isInitialSyncCompleteRef.current = true;
     } catch (e: any) {
       console.error(e);
       setSyncError(e.message || 'Failed to check drive');
@@ -137,14 +136,10 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
   };
 
   const autoSync = useCallback(async (currentBills: Bill[]) => {
-    if (!accessToken) return;
+    if (!accessToken || !isInitialSyncCompleteRef.current) return;
 
     const currentJSON = JSON.stringify(currentBills);
     if (currentJSON === lastSavedBillsJSON) return;
-    if (skipNextSyncRef.current) {
-      skipNextSyncRef.current = false;
-      return;
-    }
 
     setAutoSyncing(true);
     try {
@@ -175,6 +170,7 @@ export function useDriveSync(bills: Bill[], setBills: (bills: Bill[]) => void) {
     setLastSavedBillsJSON('');
     setUserProfile(null);
     setBills([]); // Also clear bills on logout
+    isInitialSyncCompleteRef.current = false;
     localStorage.removeItem('drive_sync_session');
   };
 
